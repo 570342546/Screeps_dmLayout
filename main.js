@@ -75,10 +75,6 @@ function DealFlag(){
 }
 //html
 const HTML ={
-    //按钮
-    Button_room_show(roomName,f) {
-        return `<button style = "color : ${f?"green":"red"}" onclick = copy('room.show(\\'${roomName}\\')')>${roomName}</button>`;
-    },
     //超链接(到指定房间)
     Href(roomName){
         return `<a href="#!/room/${Game.shard.name}/${roomName}">${roomName}</a>`;
