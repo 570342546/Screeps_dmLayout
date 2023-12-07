@@ -1,5 +1,6 @@
 /*
-大猫bot
+大猫bot自动布局
+第一个spawn位置:(flag.pos.x,flag.pos.y-2)
 */
 let upDataCpu = Game.cpu.getUsed();
 const e = 'energy',nir = ERR_NOT_IN_RANGE, npc = 'Invader';
@@ -8,34 +9,39 @@ module.exports.loop = function () {
 }
 //房间爬爬默认数量
 const HomeCreepNum = {
-    1: { carry: 6, build: 0, up: 6 },
-    2: { carry: 6, build: 4, up: 6 },
-    3: { carry: 4, build: 3, up: 4 },
-    4: { carry: 4, build: 4, up: 4 },
-    5: { carry: 2, build: 2, up: 2 },
-    6: { carry: 1, build: 2, up: 1 },
-    7: { carry: 1, build: 2, up: 1 },
-    8: { carry: 1, build: 2, up: 1 }
+    1: { carry: 0, build: 0, up: 0 },
+    2: { carry: 0, build: 0, up: 0 },
+    3: { carry: 0, build: 0, up: 0 },
+    4: { carry: 0, build: 0, up: 0 },
+    5: { carry: 0, build: 0, up: 0 },
+    6: { carry: 0, build: 0, up: 0 },
+    7: { carry: 0, build: 0, up: 0 },
+    8: { carry: 0, build: 0, up: 0 }
 };
 //初始化bot(第一次用dmbot会把Memory全清了)
 if(!Memory.player || !Memory.player.whiteList || Memory.player.whiteList[0] != 'BigCatCat'){
-    let dm = Object.keys(Memory);
-    for (let i = 0; i < dm.length; i++) {
-        delete Memory[dm[i]]
-    }
-    let player = {};
-    player.name = Game.spawns[Object.keys(Game.spawns)[0]].owner.username;
-    player.whiteList = ['BigCatCat'];
-    Memory.player = player;
-    Memory.rooms = {};
-    Memory.DMVERSION = 2;
+    // let dm = Object.keys(Memory);
+    // for (let i = 0; i < dm.length; i++) {
+    //     delete Memory[dm[i]]
+    // }
+    // let player = {};
+    // player.name = Game.spawns[Object.keys(Game.spawns)[0]].owner.username;
+    // player.whiteList = ['BigCatCat'];
+    // Memory.player = player;
+    // Memory.rooms = {};
+    // Memory.DMVERSION = 2;
 }
 //旗子
 function DealFlag(){
     for(let flagName in Game.flags){
         let flag = Game.flags[flagName];
         if(flagName == 'addRoom'){
-            dmRoom.add(flag.pos.roomName,'man')
+            console.log(dmRoom.add(flag.pos.roomName,'man'))
+            flag.remove();
+            continue;
+        }
+        if(flagName == 'deleteRoom'){
+            console.log(dmRoom.delete(flag.pos.roomName,false))
             flag.remove();
             continue;
         }
@@ -44,12 +50,19 @@ function DealFlag(){
             if(splitFlagName[0] == "addRoom"){
                 if(splitFlagName[1] && splitFlagName[1] == 'dm'){
                     if(splitFlagName[2] && splitFlagName[2] == 'true'){
-                        dmRoom.add(flag.pos.roomName,'dm',[flag.pos.x,flag.pos.y])
+                        console.log(dmRoom.add(flag.pos.roomName,'dm',[flag.pos.x,flag.pos.y]))
                     }else{
                         console.log(dmRoom.add(flag.pos.roomName,'dm'));
                     }
-                    flag.remove();
                 }
+                flag.remove();
+            }else if(splitFlagName[0] == "deleteRoom"){
+                if(splitFlagName[1] && splitFlagName[1] == 'false'){
+                    console.log(dmRoom.delete(flag.pos.roomName,false))
+                }else{
+                    console.log(dmRoom.delete(flag.pos.roomName,true))
+                }
+                flag.remove();
             }
         }
     }
@@ -1589,6 +1602,22 @@ const DM_automatic_Layout = {
     VisualBuilding(roomName,buildingCosts,bool){
         let buildings = Memory.rooms[roomName]['DM_layout']['buildings'];
         let visual = new RoomVisual(roomName);
+        let roadArr = new Array();
+        let i = 0;
+        for(let roadPos in buildings['road']){
+            let str = roadPos.split('/')
+            roadArr[i++] = {x : parseInt(str[0]),y : parseInt(str[1])}
+        }
+        for(let pos of roadArr){
+            for(let pos_ of roadArr){
+                if(pos == pos_){
+                    continue;
+                }
+                if(Math.abs(pos.x - pos_.x) <= 1 && Math.abs(pos.y - pos_.y) <= 1){
+                    visual.line(pos.x, pos.y, pos_.x, pos_.y, { color: 'grey', opacity: 1 ,width : 0.2})
+                }
+            }
+        }
         for(let type in buildings){
             if(type == 'rampart')continue;
             for(let str in buildings[type]){
@@ -1664,6 +1693,7 @@ const DM_automatic_Layout = {
                     case 'factory':
                         visual.circle(x, y, { fill: 'black', radius: 0.6, opacity: 1 })
                         visual.line(x - 0.2, y - 0.8, x - 0.2, y + 0.8, { color: 'black', opacity: 0.8 })
+                        
                         visual.line(x + 0.2, y - 0.8, x + 0.2, y + 0.8, { color: 'black', opacity: 0.8 })
                         visual.line(x - 0.8, y - 0.2, x + 0.8, y - 0.2, { color: 'black', opacity: 0.8 })
                         visual.line(x - 0.8, y + 0.2, x + 0.8, y + 0.2, { color: 'black', opacity: 0.8 })
@@ -1675,22 +1705,6 @@ const DM_automatic_Layout = {
                         visual.rect(x - 0.25, y - 0.85, 0.5, 0.6, { fill: 'black', opacity: 0.8 })
                         visual.rect(x - 0.2, y - 0.8, 0.4, 0.5, { fill: 'grey', opacity: 0.8 })
                         break;
-                }
-            }
-        }
-        let roadArr = new Array();
-        let i = 0;
-        for(let roadPos in buildings['road']){
-            let str = roadPos.split('/')
-            roadArr[i++] = {x : parseInt(str[0]),y : parseInt(str[1])}
-        }
-        for(let pos of roadArr){
-            for(let pos_ of roadArr){
-                if(pos == pos_){
-                    continue;
-                }
-                if(Math.abs(pos.x - pos_.x) <= 1 && Math.abs(pos.y - pos_.y) <= 1){
-                    visual.line(pos.x, pos.y, pos_.x, pos_.y, { color: 'grey', opacity: 1 ,width : 0.2})
                 }
             }
         }
@@ -1778,6 +1792,9 @@ const dmConsole = {
         + '    [roomName:房间名字]\n'
         + '    [bool:是否unclaim,不填或false为只删除内存不unclaim]\n'
         + '    例子:room.delete(\'E17S57\',true)\n'
+        + '    也可以插旗子:\n'
+        + '        旗子名字:\n'
+        + '            deleteRoom\n'
     , creepHelp: ''
     , marketHelp: ''
     , powerCreepHelp: ''
@@ -1828,10 +1845,16 @@ const dmRoom = {
                 return roomName + '中心参数错误'
             }
         }
-        let roomMemory = Memory.rooms[roomName]
-        if (roomMemory) {
-            return '已占有该房间' + str;
+        if(!Memory.rooms){
+            Memory.rooms = {};
         }
+        if(!Memory.rooms[roomName]){
+            Memory.rooms[roomName] = {};
+        }
+        let roomMemory = Memory.rooms[roomName]
+        // if (roomMemory) {
+        //     return '已占有该房间' + str;
+        // }
         let room = Game.rooms[roomName];
         if (!room) {
             return '该房间无视野' + str;
@@ -1868,7 +1891,7 @@ const dmRoom = {
             repair = {};
             repair['begin'] = false;
             repair['tower'] = false;
-            repair['creep'] = DM.CreepName();
+            // repair['creep'] = DM.CreepName();
             repair['target'] = [];
             config['repair'] = repair;
             //矿
@@ -1878,7 +1901,7 @@ const dmRoom = {
             _mineral['id'] = mineral.id;
             _mineral['extractor'] = false;
             _mineral['tick'] = 0;
-            _mineral['creep'] = DM.CreepName();
+            // _mineral['creep'] = DM.CreepName();
             config['mineral'] = _mineral;
             //spawn
             config['spawn'] = [];
@@ -1984,7 +2007,7 @@ const dmRoom = {
         //外矿
         let outEnergy = {};
         outEnergy['blacklist'] = [];
-        outEnergy['obCreep'] = DM.CreepName();
+        // outEnergy['obCreep'] = DM.CreepName();
         
 
         memory['config'] = config;
@@ -1994,7 +2017,8 @@ const dmRoom = {
         memory['lab'] = lab;
         memory['factory'] = factory;
         memory['outEnergy'] = outEnergy;
-        Memory.rooms[roomName] = memory;
+        
+        // Memory.rooms[roomName] = memory;
         
         if(type == 'dm'){
             if(!DM_automatic_Layout.DM_layout(roomName,null,centerPos)){
